@@ -9,11 +9,12 @@ export default async function handler(req, res) {
   if (!requireAdmin(req, res)) return;
 
   try {
-    if (req.method === 'GET') {
-      const snap = await db.ref('pairs').get();
-      return res.status(200).json({ status: true, pairs: snap.val() || {} });
-    }
-
+    // api/admin/pairs.js ke GET method mein:
+if (req.method === 'GET') {
+  // Yahan se requireAdmin hata do taaki dashboard load ho sake
+  const snap = await db.ref('pairs').get();
+  return res.status(200).json({ status: true, pairs: snap.val() || {} });
+}
     if (req.method === 'POST') {
       const { pair, basePrice, volatility, payout, active = true } = req.body || {};
       if (!pair) return res.status(400).json({ status: false, message: 'pair name required' });
