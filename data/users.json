@@ -1,0 +1,44 @@
+{
+  "users": {
+    "1001": {
+      "id": "1001",
+      "name": "Trader One",
+      "balance": 10000,
+      "pairs": ["USDPKR-OTC", "EURUSD-OTC", "BTCUSD-OTC"],
+      "active": true
+    },
+    "1002": {
+      "id": "1002",
+      "name": "Trader Two",
+      "balance": 5000,
+      "pairs": ["USDPKR-OTC", "GBPUSD-OTC"],
+      "active": true
+    }
+  },
+  "pairs": {
+    "USDPKR-OTC": {
+      "basePrice": 278.50,
+      "volatility": 0.15,
+      "payout": 85,
+      "timeframes": ["1m", "5m", "15m"]
+    },
+    "EURUSD-OTC": {
+      "basePrice": 1.0845,
+      "volatility": 0.02,
+      "payout": 82,
+      "timeframes": ["1m", "5m", "15m"]
+    },
+    "BTCUSD-OTC": {
+      "basePrice": 43250,
+      "volatility": 50,
+      "payout": 90,
+      "timeframes": ["1m", "5m", "15m"]
+    },
+    "GBPUSD-OTC": {
+      "basePrice": 1.2670,
+      "volatility": 0.025,
+      "payout": 80,
+      "timeframes": ["1m", "5m", "15m"]
+    }
+  }
+}
