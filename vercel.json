@@ -1,6 +1,5 @@
 {
   "rewrites": [
-    { "source": "/api/chart/:pair", "destination": "/api/chart/[pair].js" },
     { "source": "/admin", "destination": "/admin.html" }
   ]
 }
