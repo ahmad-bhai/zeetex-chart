@@ -1,9 +1,12 @@
 {
-  "name": "trading-chart-api",
+  "name": "zeetex-chart-system",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "vercel dev"
   },
-  "dependencies": {}
+  "dependencies": {
+    "firebase-admin": "^12.7.0"
+  }
 }
