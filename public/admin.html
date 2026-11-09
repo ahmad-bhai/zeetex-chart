@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Zeetex Admin Panel</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; }
+  body { background: #0a0e17; color: #e6edf3; padding: 20px; }
+  .container { max-width: 1200px; margin: 0 auto; }
+  h1 { color: #22d3ee; margin-bottom: 20px; font-size: 28px; }
+  h2 { color: #94a3b8; font-size: 16px; margin: 24px 0 12px; text-transform: uppercase; letter-spacing: 1px; }
+  .card { background: #131a26; border: 1px solid #1f2937; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  input, select, button { padding: 10px 14px; border-radius: 8px; border: 1px solid #1f2937; background: #0f1720; color: #e6edf3; font-size: 14px; }
+  input:focus, select:focus { outline: none; border-color: #22d3ee; }
+  button { cursor: pointer; background: #0891b2; border-color: #0891b2; font-weight: 600; transition: 0.2s; }
+  button:hover { background: #06b6d4; }
+  button.danger { background: #dc2626; border-color: #dc2626; }
+  button.danger:hover { background: #ef4444; }
+  button.success { background: #16a34a; border-color: #16a34a; }
+  button.success:hover { background: #22c55e; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  th, td { padding: 10px; text-align: left; border-bottom: 1px solid #1f2937; font-size: 14px; }
+  th { color: #94a3b8; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .badge { padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .badge-on { background: #166534; color: #86efac; }
+  .badge-off { background: #7f1d1d; color: #fca5a5; }
+  .status { padding: 8px 12px; border-radius: 6px; margin: 10px 0; display: none; }
+  .status.show { display: block; }
+  .status.ok { background: #166534; color: #d1fae5; }
+  .status.err { background: #7f1d1d; color: #fecaca; }
+  .log-item { padding: 8px 12px; background: #0f1720; border-left: 3px solid #22d3ee; margin-bottom: 6px; font-size: 13px; border-radius: 4px; }
+  .log-item.rem { border-left-color: #ef4444; }
+  .log-item.upd { border-left-color: #eab308; }
+  .muted { color: #64748b; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🎛️ Zeetex Admin Panel</h1>
+
+  <div class="card">
+    <h2>Admin Key</h2>
+    <div class="row">
+      <input type="password" id="adminKey" placeholder="Enter admin key" style="flex:1;min-width:250px" />
+      <button onclick="saveKey()">Save & Load</button>
+    </div>
+    <div class="status" id="keyStatus"></div>
+  </div>
+
+  <div class="card">
+    <h2>📈 Candle Control (Global)</h2>
+    <div class="muted">Bias: -1 = pure down, 0 = normal, 1 = pure up | Volatility: chart ki speed</div>
+    <div class="row" style="margin-top:12px">
+      <label>Candle Bias</label>
+      <input type="range" id="candleBias" min="-1" max="1" step="0.1" value="0" style="flex:1" oninput="document.getElementById('biasVal').textContent=this.value" />
+      <span id="biasVal">0</span>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <label>Volatility x</label>
+      <input type="range" id="volMult" min="0.1" max="5" step="0.1" value="1" style="flex:1" oninput="document.getElementById('volVal').textContent=this.value" />
+      <span id="volVal">1</span>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="success" onclick="saveSettings()">Save Settings</button>
+    </div>
+    <div class="status" id="setStatus"></div>
+  </div>
+
+  <div class="card">
+    <h2>💱 Pairs</h2>
+    <div class="row">
+      <input id="pName" placeholder="Pair (e.g. USDPKR-OTC)" />
+      <input id="pBase" type="number" step="0.0001" placeholder="Base price" />
+      <input id="pVol" type="number" step="0.01" placeholder="Volatility" />
+      <input id="pPay" type="number" placeholder="Payout %" />
+      <button class="success" onclick="savePair()">Add/Update</button>
+    </div>
+    <div class="status" id="pairStatus"></div>
+    <table>
+      <thead><tr><th>Pair</th><th>Base</th><th>Volatility</th><th>Payout</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody id="pairsBody"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>👤 Users</h2>
+    <div class="row">
+      <input id="uId" placeholder="User ID (trader id)" />
+      <input id="uName" placeholder="Name" />
+      <input id="uBal" type="number" placeholder="Balance" />
+      <button class="success" onclick="saveUser()">Add/Update</button>
+    </div>
+    <div class="status" id="userStatus"></div>
+    <table>
+      <thead><tr><th>ID</th><th>Name</th><th>Balance</th><th>Pairs</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody id="usersBody"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>📋 Logs (Last 200)</h2>
+    <button onclick="loadLogs()">Refresh Logs</button>
+    <div id="logsBox" style="margin-top:12px; max-height:400px; overflow-y:auto;"></div>
+  </div>
+</div>
+
+<script>
+const API = location.origin;
+let ADMIN_KEY = localStorage.getItem('adminKey') || '';
+document.getElementById('adminKey').value = ADMIN_KEY;
+
+function showStatus(elId, msg, ok = true) {
+  const el = document.getElementById(elId);
+  el.textContent = msg;
+  el.className = 'status show ' + (ok ? 'ok' : 'err');
+  setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+function headers() {
+  return { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY };
+}
+
+async function api(path, opts = {}) {
+  const r = await fetch(API + path, { ...opts, headers: headers() });
+  return r.json();
+}
+
+function saveKey() {
+  ADMIN_KEY = document.getElementById('adminKey').value.trim();
+  localStorage.setItem('adminKey', ADMIN_KEY);
+  showStatus('keyStatus', 'Key saved, loading data...');
+  loadAll();
+}
+
+async function loadAll() {
+  if (!ADMIN_KEY) return;
+  await Promise.all([loadPairs(), loadUsers(), loadSettings(), loadLogs()]);
+}
+
+async function loadPairs() {
+  try {
+    const d = await api('/api/admin/pairs');
+    if (!d.status) return;
+    const pairs = d.pairs || {};
+    const rows = Object.entries(pairs).map(([k, v]) => `
+      <tr>
+        <td><b>${k}</b></td>
+        <td>${v.basePrice}</td>
+        <td>${v.volatility}</td>
+        <td>${v.payout}%</td>
+        <td><span class="badge ${v.active ? 'badge-on' : 'badge-off'}">${v.active ? 'ACTIVE' : 'OFF'}</span></td>
+        <td>
+          <button onclick="togglePair('${k}', ${!v.active})" style="padding:5px 10px;font-size:12px">${v.active ? 'Disable' : 'Enable'}</button>
+          <button class="danger" onclick="delPair('${k}')" style="padding:5px 10px;font-size:12px">Delete</button>
+        </td>
+      </tr>`).join('');
+    document.getElementById('pairsBody').innerHTML = rows || '<tr><td colspan="6" class="muted">No pairs yet</td></tr>';
+  } catch (e) { console.error(e); }
+}
+
+async function savePair() {
+  const pair = document.getElementById('pName').value.trim();
+  if (!pair) return showStatus('pairStatus', 'Pair name required', false);
+  const body = {
+    pair,
+    basePrice: document.getElementById('pBase').value,
+    volatility: document.getElementById('pVol').value,
+    payout: document.getElementById('pPay').value,
+    active: true,
+  };
+  const d = await api('/api/admin/pairs', { method: 'POST', body: JSON.stringify(body) });
+  showStatus('pairStatus', d.status ? `Pair ${pair} saved!` : (d.message || 'Error'), d.status);
+  if (d.status) { document.getElementById('pName').value = ''; loadPairs(); }
+}
+
+async function togglePair(pair, active) {
+  const body = { pair, active };
+  const cur = await api('/api/admin/pairs');
+  const p = cur.pairs?.[pair] || {};
+  body.basePrice = p.basePrice; body.volatility = p.volatility; body.payout = p.payout;
+  await api('/api/admin/pairs', { method: 'POST', body: JSON.stringify(body) });
+  loadPairs();
+}
+
+async function delPair(pair) {
+  if (!confirm(`Delete pair "${pair}"?`)) return;
+  await api('/api/admin/pairs?pair=' + encodeURIComponent(pair), { method: 'DELETE' });
+  loadPairs();
+}
+
+async function loadUsers() {
+  try {
+    const d = await api('/api/admin/users');
+    if (!d.status) return;
+    const users = d.users || {};
+    const rows = Object.entries(users).map(([k, v]) => `
+      <tr>
+        <td><b>${k}</b></td>
+        <td>${v.name || '-'}</td>
+        <td>$${Number(v.balance || 0).toFixed(2)}</td>
+        <td class="muted">${(v.pairs || []).join(', ') || 'all'}</td>
+        <td><span class="badge ${v.active ? 'badge-on' : 'badge-off'}">${v.active ? 'ACTIVE' : 'BLOCKED'}</span></td>
+        <td>
+          <button class="danger" onclick="delUser('${k}')" style="padding:5px 10px;font-size:12px">Delete</button>
+        </td>
+      </tr>`).join('');
+    document.getElementById('usersBody').innerHTML = rows || '<tr><td colspan="6" class="muted">No users yet</td></tr>';
+  } catch (e) { console.error(e); }
+}
+
+async function saveUser() {
+  const id = document.getElementById('uId').value.trim();
+  if (!id) return showStatus('userStatus', 'User ID required', false);
+  const body = {
+    id,
+    name: document.getElementById('uName').value.trim() || 'Trader',
+    balance: document.getElementById('uBal').value || 10000,
+    active: true,
+    pairs: [],
+  };
+  const d = await api('/api/admin/users', { method: 'POST', body: JSON.stringify(body) });
+  showStatus('userStatus', d.status ? `User ${id} saved!` : (d.message || 'Error'), d.status);
+  if (d.status) { document.getElementById('uId').value = ''; document.getElementById('uName').value = ''; document.getElementById('uBal').value = ''; loadUsers(); }
+}
+
+async function delUser(id) {
+  if (!confirm(`Delete user ${id}?`)) return;
+  await api('/api/admin/users?id=' + encodeURIComponent(id), { method: 'DELETE' });
+  loadUsers();
+}
+
+async function loadSettings() {
+  const d = await api('/api/admin/settings');
+  if (!d.status) return;
+  const s = d.settings || {};
+  document.getElementById('candleBias').value = s.candleBias ?? 0;
+  document.getElementById('biasVal').textContent = s.candleBias ?? 0;
+  document.getElementById('volMult').value = s.volatilityMult ?? 1;
+  document.getElementById('volVal').textContent = s.volatilityMult ?? 1;
+}
+
+async function saveSettings() {
+  const body = {
+    candleBias: document.getElementById('candleBias').value,
+    volatilityMult: document.getElementById('volMult').value,
+  };
+  const d = await api('/api/admin/settings', { method: 'POST', body: JSON.stringify(body) });
+  showStatus('setStatus', d.status ? 'Settings saved!' : 'Error', d.status);
+}
+
+async function loadLogs() {
+  const d = await api('/api/admin/logs');
+  if (!d.status) return;
+  const logs = d.logs || [];
+  document.getElementById('logsBox').innerHTML = logs.map(l => {
+    const cls = l.type?.includes('remove') ? 'rem' : l.type?.includes('upsert') ? 'upd' : '';
+    return `<div class="log-item ${cls}">
+      <b>${new Date(l.ts).toLocaleString()}</b> — ${l.type} ${l.pair || l.id || l.userId || ''} 
+      ${l.data ? '— ' + JSON.stringify(l.data) : ''}
+    </div>`;
+  }).join('') || '<div class="muted">No logs</div>';
+}
+
+// auto load if key exists
+if (ADMIN_KEY) loadAll();
+</script>
+</body>
+</html>
