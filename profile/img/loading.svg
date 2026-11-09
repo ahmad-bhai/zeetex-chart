@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <style>
+      /* Blue Ring Spin Animation */
+      @keyframes spin {
+        100% { transform: rotate(360deg); }
+      }
+      
+      /* Logo Pulse Animation */
+      @keyframes pulse {
+        0%, 100% { opacity: 0.3; transform: scale(0.85); }
+        50% { opacity: 1; transform: scale(1); }
+      }
+
+      .spinner {
+        transform-origin: 50px 50px;
+        animation: spin 0.9s linear infinite;
+      }
+
+      .logo {
+        transform-origin: 50px 50px;
+        animation: pulse 0.9s ease-in-out infinite;
+      }
+    </style>
+  </defs>
+
+  <!-- White Base Circle -->
+  <circle cx="50" cy="50" r="45" fill="#ffffff" stroke="#f0f0f0" stroke-width="1"/>
+
+  <!-- Blue Spinning Ring (Border pe) -->
+  <circle cx="50" cy="50" r="45" fill="none" stroke="#2A75D3" stroke-width="3" stroke-linecap="round" stroke-dasharray="70 213" class="spinner" />
+
+  <!-- Center Red Logo (Aapka Diya Hua) -->
+  <g class="logo">
+    <g transform="translate(50, 50) scale(0.35) translate(-50, -50)">
+      <polygon points="30,5 70,5 95,30 95,70 70,95 30,95 5,70 5,30" fill="none" stroke="#ff0000" stroke-width="2.5"/>
+      <polygon points="31.5,7.5 68.5,7.5 92.5,31.5 92.5,68.5 68.5,92.5 31.5,92.5 7.5,68.5 7.5,31.5" fill="none" stroke="#ff0000" stroke-width="0.8"/>
+      <polygon points="50,15 59,38 84,38 64,53 71,76 50,61 29,76 36,53 16,38 41,38" fill="#ff0000"/>
+    </g>
+  </g>
+</svg>
