@@ -2,12 +2,11 @@ import { db } from '../lib/firebase.js';
 import { priceAt, ctl } from '../lib/priceEngine.js';
 
 export default async function handler(req, res) {
-  // CORS Headers (Har response ke sath zaroori hain)
+  // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key, x-employee');
 
-  // Agar browser ki OPTIONS (preflight) request aaye toh yahin rok dein 200 OK ke sath
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -18,7 +17,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ status: false, code: 'MISSING_PARAMS', message: 'userId and tradeId are required' });
     }
 
-    const ref = db.ref(`trades/${userId}/${tradeId}`), bal = db.ref(`users/${userId}/balance`);
+    const ref = db.ref(`trades/${userId}/${tradeId}`);
+    const bal = db.ref(`users/${userId}/balance`);
     const tSnap = await ref.get();
     const t = tSnap.val();
     
