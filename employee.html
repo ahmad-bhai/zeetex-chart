@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Employee Panel</title>
+<style>
+*{box-sizing:border-box;margin:0;font-family:system-ui,sans-serif}
+:root{--bg:#1c1e2b;--pn:#282b3b;--ln:#343850;--tx:#e8ebf4;--mu:#8f95ad;--up:#0faf59;--dn:#ef5d4e;--ac:#2b99ff}
+html,body{height:100%}body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column}
+header{display:flex;gap:10px;align-items:center;padding:10px 14px;background:#14161f;flex-wrap:wrap}.sp{flex:1}
+.crumb button{background:var(--pn);border:0;color:var(--tx);padding:7px 11px;border-radius:6px;cursor:pointer;margin-right:4px}
+button,input{font-size:14px}
+.pick{padding:20px;max-width:900px;margin:0 auto}.pick h2{margin-bottom:14px;font-size:16px;color:var(--mu)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}.grid button{background:var(--pn);border:1px solid var(--ln);color:var(--tx);padding:16px 10px;border-radius:10px;cursor:pointer;font-weight:700}.grid button:hover{border-color:var(--ac)}.grid small{display:block;color:var(--mu);font-weight:400;margin-top:4px}
+#pan{display:none;flex:1;min-height:0;grid-template-columns:minmax(0,1fr) 380px}
+.chart{position:relative;min-height:300px}.chart canvas{position:absolute;inset:0;width:100%;height:100%}.ttl{position:absolute;top:8px;left:12px;color:var(--mu);font-size:13px}
+aside{background:var(--pn);padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.bar{height:14px;border-radius:7px;background:var(--dn);overflow:hidden}.bar i{display:block;height:100%;background:var(--up);transition:width .4s}
+.two{display:flex;justify-content:space-between;font-size:14px}.up{color:var(--up)}.dn{color:var(--dn)}
+.ctl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.ctl button{padding:14px;border:0;border-radius:8px;color:#fff;font-weight:700;font-size:15px;cursor:pointer;opacity:.55;background:#555}
+.ctl .up.on{background:var(--up);opacity:1}.ctl .down.on{background:var(--dn);opacity:1}.ctl .flat.on{background:#686f86;opacity:1}
+.ctl button:hover{opacity:1}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:7px 4px;border-bottom:1px solid var(--ln);text-align:left}th{color:var(--mu)}
+label{font-size:12px;color:var(--mu)}input[type=range]{width:100%}
+@media(max-width:899px){#pan{grid-template-columns:1fr;grid-template-rows:55vw auto;overflow-y:auto}.chart{min-height:260px}}
+</style></head>
+<body>
+<header><b>🛡️ Employee Panel</b><div class="crumb" id="cr"></div><div class="sp"></div><small id="emp"></small><a href="admin.html" style="color:var(--ac);font-size:13px">Admin</a></header>
+<div class="pick" id="pk"></div>
+<div id="pan">
+ <div class="chart"><canvas id="cv"></canvas><div class="ttl" id="ttl"></div></div>
+ <aside>
+  <div><div class="two"><b class="up">UP <span id="uA"></span></b><b class="dn"><span id="dA"></span> DOWN</b></div><div class="bar" style="margin-top:6px"><i id="bi" style="width:50%"></i></div><small id="hv" style="color:var(--mu)"></small></div>
+  <div class="ctl" id="cb"><button class="up" data-d="up">UP ↑</button><button class="flat" data-d="flat">FLAT</button><button class="down" data-d="down">DOWN ↓</button></div>
+  <div><label>Speed <b id="sv">1</b></label><input type="range" id="sp" min="0.2" max="5" step="0.2" value="1"></div>
+  <div><b style="font-size:13px;color:var(--mu)">TRADES (this pair · <span id="dl"></span>)</b><table><thead><tr><th>User</th><th>Side</th><th>$</th><th>Left</th></tr></thead><tbody id="tb"></tbody></table></div>
+ </aside>
+</div>
+<script src="chart.js"></script>
+<script>
+const API='https://zeetex-chart.vercel.app',$=id=>document.getElementById(id),q=new URLSearchParams(location.search);
+let K=localStorage.adminKey||'';if(!K)location.href='admin.html';
+if(!localStorage.emp)localStorage.emp=prompt('Employee name?')||'employee';$('emp').textContent='👤 '+localStorage.emp;
+const H=()=>({'Content-Type':'application/json','x-admin-key':K,'x-employee':localStorage.emp});
+const api=(p,m='GET',b)=>fetch(API+p,{method:m,headers:H(),body:b&&JSON.stringify(b)}).then(r=>r.json());
+const TFS={'1m':60,'5m':300,'15m':900},DUR=[5,15,30,60,120,300],dn=s=>s>=60?s/60+'m':s+'s',money=v=>'$'+Number(v).toFixed(2);
+let st={pair:q.get('pair')||'',tf:'',dur:0},D=null,ch=null,skew=0,tm=null;
+function step(){
+ $('cr').innerHTML=['pair','tf','dur'].map(k=>st[k]?`<button onclick="st.${k}=${k==='dur'?0:"''"};${k==='pair'?"st.tf='';st.dur=0;":k==='tf'?'st.dur=0;':''}step()">${k==='dur'?dn(st[k]):st[k]} ✕</button>`:'').join('');
+ clearInterval(tm);$('pan').style.display='none';$('pk').style.display='block';
+ if(!st.pair)return api('/api/admin/overview').then(r=>{if(r.status===false)return location.href='admin.html';$('pk').innerHTML='<h2>1. Select pair</h2><div class="grid">'+Object.keys(r.pairs).map(k=>`<button onclick="st.pair='${k}';step()">${k}<small>UP ${money(r.pairs[k].up)} · DOWN ${money(r.pairs[k].down)}</small></button>`).join('')+'</div>'});
+ if(!st.tf)return $('pk').innerHTML='<h2>2. Chart time frame</h2><div class="grid">'+Object.keys(TFS).map(t=>`<button onclick="st.tf='${t}';step()">${t}</button>`).join('')+'</div>';
+ if(!st.dur)return $('pk').innerHTML='<h2>3. Trade time</h2><div class="grid">'+DUR.map(d=>`<button onclick="st.dur=${d};step()">${dn(d)}</button>`).join('')+'</div>';
+ $('pk').style.display='none';$('pan').style.display='grid';$('dl').textContent=dn(st.dur);
+ if(!ch)ch=new CandleChart($('cv'));ch.setData([{time:0,open:1,high:1,low:1,close:1}],1,1,2);D=null;load(true);tm=setInterval(()=>load(false),1500);
+}
+async function load(first){
+ const r=await api(`/api/admin/overview${first?`?pair=${st.pair}&tf=${st.tf}`:''}`);if(r.status===false)return;D=r;skew=r.serverTime-Date.now();ch.skew=skew;
+ const p=r.pairs[st.pair],c=p.control;
+ if(first&&r.candles)ch.setData(r.candles,priceAt(c,Date.now()+skew),TFS[st.tf],decOf(c.price));
+ [...$('cb').children].forEach(b=>b.classList.toggle('on',b.dataset.d===c.dir));if(document.activeElement!==$('sp')){$('sp').value=c.speed;$('sv').textContent=c.speed}
+ const tr=r.open.filter(x=>x.pair===st.pair&&x.duration===st.dur),u=tr.filter(x=>x.direction==='buy').reduce((a,x)=>a+x.amount,0),d=tr.filter(x=>x.direction==='sell').reduce((a,x)=>a+x.amount,0),t=u+d;
+ $('uA').textContent=money(u);$('dA').textContent=money(d);$('bi').style.width=(t?u/t*100:50)+'%';$('hv').textContent=t?(u>d?'More money on UP — DOWN pays less out':d>u?'More money on DOWN — UP pays less out':'Balanced'):'No trades on this pair/time';
+ $('tb').innerHTML=tr.sort((a,b)=>a.expiryTime-b.expiryTime).map(x=>`<tr><td>${x.name||x.userId}</td><td class="${x.direction==='buy'?'up':'dn'}">${x.direction==='buy'?'↑ UP':'↓ DOWN'}</td><td>${money(x.amount)}</td><td>${Math.max(0,Math.ceil((x.expiryTime-r.serverTime)/1000))}s</td></tr>`).join('')||'<tr><td colspan=4 style="color:var(--mu)">No trades</td></tr>';
+ ch.marks=tr.map(x=>({price:x.entryPrice,dir:x.direction,amt:x.amount,exp:x.expiryTime}));window.cur=c}
+setInterval(()=>{if(window.cur&&ch&&ch.C.length>1){const p=priceAt(window.cur,Date.now()+skew);ch.tick(p,Date.now()+skew);$('ttl').textContent=st.pair+'  '+p.toFixed(ch.dec)+'  · '+window.cur.dir.toUpperCase()}},400);
+async function setCtl(dir){const c={...window.cur,dir};window.cur=c;[...$('cb').children].forEach(b=>b.classList.toggle('on',b.dataset.d===dir));
+ const r=await api('/api/admin/control','POST',{pair:st.pair,dir,speed:+$('sp').value});if(r.status){window.cur=r.control;skew=r.serverTime-Date.now();ch.skew=skew}}
+$('cb').onclick=e=>{if(e.target.dataset.d)setCtl(e.target.dataset.d)};
+$('sp').oninput=()=>$('sv').textContent=$('sp').value;$('sp').onchange=()=>setCtl(window.cur?window.cur.dir:'flat');
+step();
+</script></body></html>
