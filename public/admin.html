@@ -1,183 +1,53 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Zeetex Admin</title>
 <style>
-  * { box-sizing: border-box; font-family: sans-serif; }
-  body { background: #0a0e17; color: #e6edf3; padding: 20px; margin: 0; }
-  .container { max-width: 1000px; margin: 0 auto; }
-  h1 { color: #22d3ee; }
-  h2 { color: #94a3b8; font-size: 14px; text-transform: uppercase; margin-top: 30px;}
-  .card { background: #131a26; border: 1px solid #1f2937; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
-  .row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
-  input, button { padding: 8px 12px; border-radius: 6px; border: 1px solid #1f2937; background: #0f1720; color: white; }
-  button { background: #0891b2; cursor: pointer; font-weight: bold; border: none; }
-  button:hover { background: #06b6d4; }
-  button.danger { background: #dc2626; }
-  table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px;}
-  th, td { padding: 10px; border-bottom: 1px solid #1f2937; text-align: left; }
-  th { color: #94a3b8; }
-  .badge { padding: 2px 6px; border-radius: 4px; font-size: 11px; }
-  .on { background: #166534; color: #86efac; } .off { background: #7f1d1d; color: #fca5a5; }
-  .status { font-size: 13px; margin-top: 5px; color: #3fb950; display: none;}
-</style>
-</head>
-<body>
-<div class="container">
-  <h1>🛡️ Zeetex Admin</h1>
-  
-  <div class="card">
-    <div class="row">
-      <input type="password" id="adminKey" placeholder="Admin Key" style="flex:1;" />
-      <button onclick="saveKey()">Login</button>
-    </div>
-    <div id="keyMsg" class="status" style="color:#f85149;">Invalid Key</div>
-  </div>
-
-  <div id="appArea" style="display:none;">
-    <!-- Candle Control -->
-    <div class="card">
-      <h2>Chart Control</h2>
-      <div class="row">
-        <label>Bias (0=Normal, 1=Up, -1=Down):</label>
-        <input type="range" id="bias" min="-1" max="1" step="0.1" value="0" oninput="document.getElementById('biasVal').innerText=this.value">
-        <span id="biasVal">0</span>
-      </div>
-      <div class="row">
-        <label>Volatility Speed:</label>
-        <input type="range" id="vol" min="0.1" max="3" step="0.1" value="1" oninput="document.getElementById('volVal').innerText=this.value">
-        <span id="volVal">1</span>
-      </div>
-      <button onclick="saveSettings()">Save Chart Settings</button>
-    </div>
-
-    <!-- Pairs -->
-    <div class="card">
-      <h2>Pairs Management</h2>
-      <div class="row">
-        <input id="pName" placeholder="Pair Name (e.g. USDPKR-OTC)">
-        <input id="pBase" type="number" placeholder="Base Price">
-        <input id="pVol" type="number" placeholder="Volatility">
-        <input id="pPay" type="number" placeholder="Payout %">
-        <button onclick="savePair()">Add Pair</button>
-      </div>
-      <table>
-        <thead><tr><th>Pair</th><th>Base</th><th>Payout</th><th>Status</th><th>Action</th></tr></thead>
-        <tbody id="pairsBody"></tbody>
-      </table>
-    </div>
-
-    <!-- Users -->
-    <div class="card">
-      <h2>Users Management</h2>
-      <table>
-        <thead><tr><th>ID</th><th>Name</th><th>Balance</th><th>Status</th><th>Action</th></tr></thead>
-        <tbody id="usersBody"></tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
+*{box-sizing:border-box;margin:0;font-family:system-ui,sans-serif}
+:root{--bg:#10131c;--cd:#1a1f2e;--ln:#2b3247;--tx:#e8ebf4;--mu:#8c94ad;--up:#0faf59;--dn:#ef5d4e;--ac:#2b99ff}
+body{background:var(--bg);color:var(--tx);padding:14px}.w{max-width:1200px;margin:0 auto}
+h1{font-size:20px}h2{font-size:13px;color:var(--mu);margin:0 0 10px;font-weight:600}
+.cd{background:var(--cd);border:1px solid var(--ln);border-radius:10px;padding:14px;margin-top:12px;overflow-x:auto}
+.top{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.sp{flex:1}
+.st{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px}.st div{background:var(--cd);border:1px solid var(--ln);border-radius:10px;padding:12px}.st b{display:block;font-size:20px;margin-top:4px}.st span{color:var(--mu);font-size:12px}
+input,button{padding:8px 11px;border-radius:6px;border:1px solid var(--ln);background:var(--bg);color:var(--tx);font-size:13px}button{cursor:pointer;background:var(--ac);border:0;font-weight:600;color:#fff}button.g{background:var(--ln)}button.r{background:#a8322a}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:640px}th,td{padding:9px 8px;border-bottom:1px solid var(--ln);text-align:left;white-space:nowrap}th{color:var(--mu);font-weight:600}
+.bar{height:8px;border-radius:4px;background:var(--dn);overflow:hidden;min-width:120px}.bar i{display:block;height:100%;background:var(--up)}
+.m button{padding:5px 9px;background:var(--ln)}.m button.on.up{background:var(--up)}.m button.on.down{background:var(--dn)}.m button.on.flat{background:#686f86}
+.up{color:var(--up)}.dn{color:var(--dn)}.b{padding:2px 7px;border-radius:4px;font-size:11px}.ok{background:#14532d}.no{background:#7f1d1d}
+#app{display:none}.f{display:flex;gap:8px;flex-wrap:wrap}
+</style></head>
+<body><div class="w">
+<div class="top"><h1>🛡️ Zeetex Admin</h1><div class="sp"></div><input id="k" type="password" placeholder="Admin key"><button id="lg">Login</button></div>
+<div id="app">
+ <div class="st" id="st"></div>
+ <div class="cd"><h2>PAIRS — UP vs DOWN exposure &amp; live control (applies instantly)</h2><table><thead><tr><th>Pair</th><th>Price</th><th>UP $</th><th>DOWN $</th><th>Exposure</th><th>Control</th><th></th></tr></thead><tbody id="pt"></tbody></table></div>
+ <div class="cd"><h2>USERS</h2><table><thead><tr><th>ID</th><th>Name</th><th>Balance</th><th>Open</th><th>Open $</th><th>Status</th><th>Actions</th></tr></thead><tbody id="ut"></tbody></table></div>
+ <div class="cd"><h2>OPEN TRADES</h2><table><thead><tr><th>User</th><th>Pair</th><th>Side</th><th>Amount</th><th>Entry</th><th>Left</th></tr></thead><tbody id="ot"></tbody></table></div>
+ <div class="cd"><h2>RECENT RESULTS</h2><table><thead><tr><th>User</th><th>Pair</th><th>Side</th><th>Amount</th><th>Result</th><th>P/L</th></tr></thead><tbody id="ct"></tbody></table></div>
+ <div class="cd"><h2>ADD / UPDATE PAIR</h2><div class="f"><input id="pn" placeholder="USDPKR-OTC"><input id="pb" type="number" placeholder="Base price"><input id="pv" type="number" step="any" placeholder="Volatility"><input id="pp" type="number" placeholder="Payout %"><button id="pa">Save pair</button></div></div>
+</div></div>
 <script>
-const API = 'https://zeetex-chart.vercel.app';
-let adminKey = localStorage.getItem('adminKey') || '';
-
-function h() { return { 'Content-Type': 'application/json', 'x-admin-key': adminKey }; }
-
-async function saveKey() {
-  adminKey = document.getElementById('adminKey').value;
-  const res = await fetch(`${API}/api/admin/settings`, { headers: h() });
-  if (res.ok) {
-    localStorage.setItem('adminKey', adminKey);
-    document.getElementById('appArea').style.display = 'block';
-    document.getElementById('keyMsg').style.display = 'none';
-    loadAll();
-  } else {
-    document.getElementById('keyMsg').style.display = 'block';
-  }
-}
-
-async function loadAll() {
-  // Settings
-  const sRes = await fetch(`${API}/api/admin/settings`, { headers: h() });
-  const sData = await sRes.json();
-  if (sData.status) {
-    document.getElementById('bias').value = sData.settings.candleBias || 0;
-    document.getElementById('biasVal').innerText = sData.settings.candleBias || 0;
-    document.getElementById('vol').value = sData.settings.volatilityMult || 1;
-    document.getElementById('volVal').innerText = sData.settings.volatilityMult || 1;
-  }
-
-  // Pairs
-  const pRes = await fetch(`${API}/api/admin/pairs`, { headers: h() });
-  const pData = await pRes.json();
-  if (pData.status) {
-    document.getElementById('pairsBody').innerHTML = Object.keys(pData.pairs).map(k => `
-      <tr>
-        <td><b>${k}</b></td>
-        <td>${pData.pairs[k].basePrice}</td>
-        <td>${pData.pairs[k].payout}%</td>
-        <td><span class="badge ${pData.pairs[k].active?'on':'off'}">${pData.pairs[k].active?'ON':'OFF'}</span></td>
-        <td><button class="danger" onclick="delPair('${k}')">Delete</button></td>
-      </tr>
-    `).join('');
-  }
-
-  // Users
-  const uRes = await fetch(`${API}/api/admin/users`, { headers: h() });
-  const uData = await uRes.json();
-  if (uData.status) {
-    document.getElementById('usersBody').innerHTML = Object.keys(uData.users).map(k => `
-      <tr>
-        <td><b>${k}</b></td>
-        <td>${uData.users[k].name}</td>
-        <td>$${uData.users[k].balance}</td>
-        <td><span class="badge ${uData.users[k].active?'on':'off'}">${uData.users[k].active?'ACTIVE':'BLOCKED'}</span></td>
-        <td><button class="danger" onclick="delUser('${k}')">Delete</button></td>
-      </tr>
-    `).join('');
-  }
-}
-
-async function saveSettings() {
-  const body = {
-    candleBias: document.getElementById('bias').value,
-    volatilityMult: document.getElementById('vol').value
-  };
-  await fetch(`${API}/api/admin/settings`, { method: 'POST', headers: h(), body: JSON.stringify(body) });
-  alert('Settings Saved!');
-}
-
-async function savePair() {
-  const body = {
-    pair: document.getElementById('pName').value,
-    basePrice: document.getElementById('pBase').value,
-    volatility: document.getElementById('pVol').value,
-    payout: document.getElementById('pPay').value,
-    active: true
-  };
-  await fetch(`${API}/api/admin/pairs`, { method: 'POST', headers: h(), body: JSON.stringify(body) });
-  loadAll();
-}
-
-async function delPair(pair) {
-  if(!confirm('Delete '+pair+'?')) return;
-  await fetch(`${API}/api/admin/pairs?pair=${pair}`, { method: 'DELETE', headers: h() });
-  loadAll();
-}
-
-async function delUser(id) {
-  if(!confirm('Delete User '+id+'?')) return;
-  await fetch(`${API}/api/admin/users?id=${id}`, { method: 'DELETE', headers: h() });
-  loadAll();
-}
-
-if (adminKey) {
-  document.getElementById('adminKey').value = adminKey;
-  saveKey();
-}
-</script>
-</body>
-</html>
+const API='https://zeetex-chart.vercel.app',$=id=>document.getElementById(id);let K=localStorage.adminKey||'',D=null,tm=null;
+const H=()=>({'Content-Type':'application/json','x-admin-key':K,'x-employee':localStorage.emp||'admin'});
+const api=(p,m='GET',b)=>fetch(API+p,{method:m,headers:H(),body:b&&JSON.stringify(b)}).then(r=>r.json());
+const money=v=>'$'+Number(v||0).toFixed(2);
+async function load(){const r=await api('/api/admin/overview');if(r.status===false&&r.code==='UNAUTHORIZED'){$('app').style.display='none';return}D=r;$('app').style.display='block';render()}
+function render(){
+ const o=D.open,tot=o.reduce((a,x)=>a+x.amount,0);
+ $('st').innerHTML=[['Users',D.users.length],['Open trades',o.length],['Open amount',money(tot)],['Total balance',money(D.users.reduce((a,u)=>a+u.balance,0))]].map(x=>`<div><span>${x[0]}</span><b>${x[1]}</b></div>`).join('');
+ $('pt').innerHTML=Object.keys(D.pairs).map(k=>{const p=D.pairs[k],t=p.up+p.down,c=p.control,pc=t?p.up/t*100:50;
+  return `<tr><td><b>${k}</b></td><td>${p.price.toFixed(4)}</td><td class="up">${money(p.up)} (${p.upN})</td><td class="dn">${money(p.down)} (${p.downN})</td><td><div class="bar" title="UP ${pc.toFixed(0)}%"><i style="width:${pc}%"></i></div><small>${t?(p.up>p.down?'UP heavy':p.down>p.up?'DOWN heavy':'Balanced'):'No trades'}</small></td>
+  <td class="m">${['up','down','flat'].map(d=>`<button class="${d} ${c.dir===d?'on':''}" onclick="ctl('${k}','${d}')">${d.toUpperCase()}</button>`).join(' ')}</td><td><button class="g" onclick="location.href='employee.html?pair=${k}'">Open panel</button> <button class="r" onclick="delPair('${k}')">✕</button></td></tr>`}).join('');
+ $('ut').innerHTML=D.users.map(u=>`<tr><td>${u.id}</td><td>${u.name}</td><td>${money(u.balance)}</td><td>${u.open}</td><td>${money(u.openAmt)}</td><td><span class="b ${u.active===false?'no':'ok'}">${u.active===false?'BLOCKED':'ACTIVE'}</span></td><td><button class="g" onclick="addBal('${u.id}')">+ Balance</button> <button class="g" onclick="blk('${u.id}',${u.active===false})">${u.active===false?'Unblock':'Block'}</button> <button class="r" onclick="delUser('${u.id}')">Delete</button></td></tr>`).join('');
+ const l=x=>Math.max(0,Math.ceil((x.expiryTime-D.serverTime)/1000));
+ $('ot').innerHTML=o.sort((a,b)=>a.expiryTime-b.expiryTime).map(x=>`<tr><td>${x.name||x.userId} (${x.userId})</td><td>${x.pair}</td><td class="${x.direction==='buy'?'up':'dn'}">${x.direction==='buy'?'↑ UP':'↓ DOWN'}</td><td>${money(x.amount)}</td><td>${x.entryPrice.toFixed(4)}</td><td>${l(x)}s</td></tr>`).join('')||'<tr><td colspan=6>No open trades</td></tr>';
+ $('ct').innerHTML=D.closed.map(x=>`<tr><td>${x.name||x.userId}</td><td>${x.pair}</td><td class="${x.direction==='buy'?'up':'dn'}">${x.direction==='buy'?'UP':'DOWN'}</td><td>${money(x.amount)}</td><td>${x.result}</td><td class="${x.pnl>0?'up':x.pnl<0?'dn':''}">${money(x.pnl)}</td></tr>`).join('')}
+async function ctl(pair,dir){const c=D.pairs[pair].control;D.pairs[pair].control.dir=dir;render();await api('/api/admin/control','POST',{pair,dir,speed:c.speed});load()}
+async function addBal(id){const v=prompt('Add amount to user '+id+' (negative to deduct)');if(v){await api('/api/admin/overview','POST',{id,addBalance:+v});load()}}
+async function blk(id,a){await api('/api/admin/overview','POST',{id,active:a});load()}
+async function delUser(id){if(confirm('Delete user '+id+'?')){await api('/api/admin/users?id='+id,'DELETE');load()}}
+async function delPair(p){if(confirm('Delete '+p+'?')){await api('/api/admin/pairs?pair='+p,'DELETE');load()}}
+$('pa').onclick=async()=>{await api('/api/admin/pairs','POST',{pair:$('pn').value.trim(),basePrice:$('pb').value,volatility:$('pv').value,payout:$('pp').value,active:true});load()};
+$('lg').onclick=async()=>{K=$('k').value;localStorage.adminKey=K;await load();if(D){clearInterval(tm);tm=setInterval(load,2000)}};
+if(K){$('k').value=K;$('lg').click()}
+</script></body></html>
