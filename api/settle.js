@@ -2,10 +2,16 @@ import { db } from '../lib/firebase.js';
 import { priceAt, ctl } from '../lib/priceEngine.js';
 
 export default async function handler(req, res) {
+  // CORS Headers (Har response ke sath zaroori hain)
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key, x-employee');
+
+  // Agar browser ki OPTIONS (preflight) request aaye toh yahin rok dein 200 OK ke sath
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   try {
     const { userId, tradeId } = req.body || {};
     if (!userId || !tradeId) {
@@ -27,7 +33,6 @@ export default async function handler(req, res) {
     const cfg = (await db.ref(`pairs/${t.pair}`).get()).val() || { basePrice: t.entryPrice };
     const controlVal = (await db.ref(`control/${t.pair}`).get()).val();
     
-    // Yahan check karein ke priceAt ya ctl mein koi error toh nahi aa raha
     const controlObj = ctl ? ctl(t.pair, cfg, controlVal) : cfg;
     const close = priceAt ? priceAt(controlObj) : t.entryPrice;
     
@@ -42,9 +47,9 @@ export default async function handler(req, res) {
     
     await db.ref(`logs/${Date.now()}_${tradeId}`).set({ ts: Date.now(), type: 'trade_close', userId, tradeId, pair: t.pair, pnl });
     
-    res.json({ status: total_res = true, trade: (await ref.get()).val(), newBalance: (await bal.get()).val() });
+    return res.json({ status: true, trade: (await ref.get()).val(), newBalance: (await bal.get()).val() });
   } catch (e) { 
-    console.error("SETTLE ERROR:", e); // Ye Vercel logs mein exact error dikhayega
-    res.status(500).json({ status: false, code: 'SERVER_ERROR', message: e.message, stack: e.stack }); 
+    console.error("SETTLE ERROR:", e);
+    return res.status(500).json({ status: false, code: 'SERVER_ERROR', message: e.message, stack: e.stack }); 
   }
 }
