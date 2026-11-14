@@ -9,7 +9,7 @@ header{display:flex;gap:10px;align-items:center;padding:10px 14px;background:#14
 .crumb button{background:var(--pn);border:0;color:var(--tx);padding:7px 11px;border-radius:6px;cursor:pointer;margin-right:4px}
 button,input{font-size:14px}
 .pick{padding:20px;max-width:900px;margin:0 auto}.pick h2{margin-bottom:14px;font-size:16px;color:var(--mu)}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}.grid button{background:var(--pn);border:1px solid var(--ln);color:var(--tx);padding:16px 10px;border-radius:10px;cursor:pointer;font-weight:700}.grid button:hover{border-color:var(--ac)}.grid small{display:block;color:var(--mu);font-weight:400;margin-top:4px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}.grid button{background:var(--pn);border:1px solid var(--ln);color:var(--tx);padding:14px 8px;border-radius:10px;cursor:pointer;font-weight:700}.grid button:hover{border-color:var(--ac)}.grid small{display:block;color:var(--mu);font-weight:400;margin-top:4px}
 #pan{display:none;flex:1;min-height:0;grid-template-columns:minmax(0,1fr) 380px}
 .chart{position:relative;min-height:300px}.chart canvas{position:absolute;inset:0;width:100%;height:100%}.ttl{position:absolute;top:8px;left:12px;color:var(--mu);font-size:13px}
 aside{background:var(--pn);padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
@@ -41,16 +41,29 @@ let K=localStorage.adminKey||'';if(!K)location.href='admin.html';
 if(!localStorage.emp)localStorage.emp=prompt('Employee name?')||'employee';$('emp').textContent='👤 '+localStorage.emp;
 const H=()=>({'Content-Type':'application/json','x-admin-key':K,'x-employee':localStorage.emp});
 const api=(p,m='GET',b)=>fetch(API+p,{method:m,headers:H(),body:b&&JSON.stringify(b)}).then(r=>r.json());
-const TFS={'1m':60,'5m':300,'15m':900},DUR=[5,15,30,60,120,300],dn=s=>s>=60?s/60+'m':s+'s',money=v=>'$'+Number(v).toFixed(2);
+
+// Updated Candle Timeframes
+const TFS={'5s':5,'10s':10,'15s':15,'30s':30,'1m':60,'2m':120,'3m':180,'5m':300,'10m':600,'15m':900,'30m':1800,'1h':3600,'4h':14400,'1d':86400};
+// Updated Trade Durations (seconds)
+const DUR=[5,10,15,30,60,120,300,600,900,1800,3600,7200,14400];
+
+const dn=s=>{
+  if(s>=86400)return s/86400+'d';
+  if(s>=3600)return s/3600+'h';
+  if(s>=60)return s/60+'m';
+  return s+'s';
+};
+const money=v=>'$'+Number(v).toFixed(2);
+
 let st={pair:q.get('pair')||'',tf:'',dur:0},D=null,ch=null,skew=0,tm=null;
 function step(){
- $('cr').innerHTML=['pair','tf','dur'].map(k=>st[k]?`<button onclick="st.${k}=${k==='dur'?0:"''"};${k==='pair'?"st.tf='';st.dur=0;":k==='tf'?'st.dur=0;':''}step()">${k==='dur'?dn(st[k]):st[k]} ✕</button>`:'').join('');
+ $('cr').innerHTML=['pair','tf','dur'].map(k=>st[k]?`<button onclick="st.${k}=${k==='dur'?0:""};${k==='pair'?"st.tf='';st.dur=0;":k==='tf'?'st.dur=0;':''}step()">${k==='dur'?dn(st[k]):st[k]} ✕</button>`:'').join('');
  clearInterval(tm);$('pan').style.display='none';$('pk').style.display='block';
  if(!st.pair)return api('/api/admin/overview').then(r=>{if(r.status===false)return location.href='admin.html';$('pk').innerHTML='<h2>1. Select pair</h2><div class="grid">'+Object.keys(r.pairs).map(k=>`<button onclick="st.pair='${k}';step()">${k}<small>UP ${money(r.pairs[k].up)} · DOWN ${money(r.pairs[k].down)}</small></button>`).join('')+'</div>'});
- if(!st.tf)return $('pk').innerHTML='<h2>2. Chart time frame</h2><div class="grid">'+Object.keys(TFS).map(t=>`<button onclick="st.tf='${t}';step()">${t}</button>`).join('')+'</div>';
+ if(!st.tf)return $('pk').innerHTML='<h2>2. Candle time frame</h2><div class="grid">'+Object.keys(TFS).map(t=>`<button onclick="st.tf='${t}';step()">${t}</button>`).join('')+'</div>';
  if(!st.dur)return $('pk').innerHTML='<h2>3. Trade time</h2><div class="grid">'+DUR.map(d=>`<button onclick="st.dur=${d};step()">${dn(d)}</button>`).join('')+'</div>';
  $('pk').style.display='none';$('pan').style.display='grid';$('dl').textContent=dn(st.dur);
- if(!ch)ch=new CandleChart($('cv'));ch.setData([{time:0,open:1,high:1,low:1,close:1}],1,1,2);D=null;load(true);tm=setInterval(()=>load(false),1500);
+ if(!ch)ch=new CandleChart($('cv'));ch.setData([{time:0,open:1,high:1,low:1,close:1}],1,TFS[st.tf],2);D=null;load(true);tm=setInterval(()=>load(false),1500);
 }
 async function load(first){
  const r=await api(`/api/admin/overview${first?`?pair=${st.pair}&tf=${st.tf}`:''}`);if(r.status===false)return;D=r;skew=r.serverTime-Date.now();ch.skew=skew;
