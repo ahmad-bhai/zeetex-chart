@@ -17,10 +17,10 @@ table{width:100%;border-collapse:collapse;font-size:13px;min-width:640px}th,td{p
 #app{display:none}.f{display:flex;gap:8px;flex-wrap:wrap}
 </style></head>
 <body><div class="w">
-<div class="top"><h1>🛡️ Zeetex Admin</h1><div class="sp"></div><input id="k" type="password" placeholder="Admin key"><button id="lg">Login</button></div>
+<div class="top"><h1>🛡️ Zeetex Admin</h1><div class="sp"></div><button id="gm" class="g" style="display:none"></button><input id="k" type="password" placeholder="Admin key"><button id="lg">Login</button></div>
 <div id="app">
  <div class="st" id="st"></div>
- <div class="cd"><h2>PAIRS — UP vs DOWN exposure &amp; live control (applies instantly)</h2><table><thead><tr><th>Pair</th><th>Price</th><th>UP $</th><th>DOWN $</th><th>Exposure</th><th>Control</th><th></th></tr></thead><tbody id="pt"></tbody></table></div>
+ <div class="cd"><h2>PAIRS — UP vs DOWN money. AUTO = backend closes against the heavier side · MANUAL = employees control from the pair panel</h2><table><thead><tr><th>Pair</th><th>Price</th><th>UP $</th><th>DOWN $</th><th>Exposure</th><th>Mode</th><th></th></tr></thead><tbody id="pt"></tbody></table></div>
  <div class="cd"><h2>USERS</h2><table><thead><tr><th>ID</th><th>Name</th><th>Balance</th><th>Open</th><th>Open $</th><th>Status</th><th>Actions</th></tr></thead><tbody id="ut"></tbody></table></div>
  <div class="cd"><h2>OPEN TRADES</h2><table><thead><tr><th>User</th><th>Pair</th><th>Side</th><th>Amount</th><th>Entry</th><th>Left</th></tr></thead><tbody id="ot"></tbody></table></div>
  <div class="cd"><h2>RECENT RESULTS</h2><table><thead><tr><th>User</th><th>Pair</th><th>Side</th><th>Amount</th><th>Result</th><th>P/L</th></tr></thead><tbody id="ct"></tbody></table></div>
@@ -33,16 +33,17 @@ const api=(p,m='GET',b)=>fetch(API+p,{method:m,headers:H(),body:b&&JSON.stringif
 const money=v=>'$'+Number(v||0).toFixed(2);
 async function load(){const r=await api('/api/admin/overview');if(r.status===false&&r.code==='UNAUTHORIZED'){$('app').style.display='none';return}D=r;$('app').style.display='block';render()}
 function render(){
+ $('gm').style.display='';$('gm').textContent='ALL PAIRS: '+D.mode.global.toUpperCase()+' ⇄';$('gm').onclick=()=>setMode('',D.mode.global==='auto'?'manual':'auto');
  const o=D.open,tot=o.reduce((a,x)=>a+x.amount,0);
  $('st').innerHTML=[['Users',D.users.length],['Open trades',o.length],['Open amount',money(tot)],['Total balance',money(D.users.reduce((a,u)=>a+u.balance,0))]].map(x=>`<div><span>${x[0]}</span><b>${x[1]}</b></div>`).join('');
- $('pt').innerHTML=Object.keys(D.pairs).map(k=>{const p=D.pairs[k],t=p.up+p.down,c=p.control,pc=t?p.up/t*100:50;
-  return `<tr><td><b>${k}</b></td><td>${p.price.toFixed(4)}</td><td class="up">${money(p.up)} (${p.upN})</td><td class="dn">${money(p.down)} (${p.downN})</td><td><div class="bar" title="UP ${pc.toFixed(0)}%"><i style="width:${pc}%"></i></div><small>${t?(p.up>p.down?'UP heavy':p.down>p.up?'DOWN heavy':'Balanced'):'No trades'}</small></td>
-  <td class="m">${['up','down','flat'].map(d=>`<button class="${d} ${c.dir===d?'on':''}" onclick="ctl('${k}','${d}')">${d.toUpperCase()}</button>`).join(' ')}</td><td><button class="g" onclick="location.href='employee.html?pair=${k}'">Open panel</button> <button class="r" onclick="delPair('${k}')">✕</button></td></tr>`}).join('');
+ $('pt').innerHTML=Object.keys(D.pairs).map(k=>{const p=D.pairs[k],t=p.up+p.down,pc=t?p.up/t*100:50,au=p.mode==='auto';
+  return `<tr><td><b>${k}</b></td><td>${p.price}</td><td class="up">${money(p.up)} (${p.upN})</td><td class="dn">${money(p.down)} (${p.downN})</td><td><div class="bar" title="UP ${pc.toFixed(0)}%"><i style="width:${pc}%"></i></div><small>${t?(p.up>p.down?'UP heavy':p.down>p.up?'DOWN heavy':'Balanced'):'No trades'}</small></td>
+  <td><button style="background:${au?'#ff8a00':'#0faf59'}" onclick="setMode('${k}','${au?'manual':'auto'}')">${au?'AUTO':'MANUAL'}</button></td><td><button class="g" onclick="location.href='employee.html?pair=${k}'">Open panel</button> <button class="r" onclick="delPair('${k}')">✕</button></td></tr>`}).join('');
  $('ut').innerHTML=D.users.map(u=>`<tr><td>${u.id}</td><td>${u.name}</td><td>${money(u.balance)}</td><td>${u.open}</td><td>${money(u.openAmt)}</td><td><span class="b ${u.active===false?'no':'ok'}">${u.active===false?'BLOCKED':'ACTIVE'}</span></td><td><button class="g" onclick="addBal('${u.id}')">+ Balance</button> <button class="g" onclick="blk('${u.id}',${u.active===false})">${u.active===false?'Unblock':'Block'}</button> <button class="r" onclick="delUser('${u.id}')">Delete</button></td></tr>`).join('');
  const l=x=>Math.max(0,Math.ceil((x.expiryTime-D.serverTime)/1000));
  $('ot').innerHTML=o.sort((a,b)=>a.expiryTime-b.expiryTime).map(x=>`<tr><td>${x.name||x.userId} (${x.userId})</td><td>${x.pair}</td><td class="${x.direction==='buy'?'up':'dn'}">${x.direction==='buy'?'↑ UP':'↓ DOWN'}</td><td>${money(x.amount)}</td><td>${x.entryPrice.toFixed(4)}</td><td>${l(x)}s</td></tr>`).join('')||'<tr><td colspan=6>No open trades</td></tr>';
  $('ct').innerHTML=D.closed.map(x=>`<tr><td>${x.name||x.userId}</td><td>${x.pair}</td><td class="${x.direction==='buy'?'up':'dn'}">${x.direction==='buy'?'UP':'DOWN'}</td><td>${money(x.amount)}</td><td>${x.result}</td><td class="${x.pnl>0?'up':x.pnl<0?'dn':''}">${money(x.pnl)}</td></tr>`).join('')}
-async function ctl(pair,dir){const c=D.pairs[pair].control;D.pairs[pair].control.dir=dir;render();await api('/api/admin/control','POST',{pair,dir,speed:c.speed});load()}
+async function setMode(pair,mode){await api('/api/admin/mode','POST',{pair,mode});load()}
 async function addBal(id){const v=prompt('Add amount to user '+id+' (negative to deduct)');if(v){await api('/api/admin/overview','POST',{id,addBalance:+v});load()}}
 async function blk(id,a){await api('/api/admin/overview','POST',{id,active:a});load()}
 async function delUser(id){if(confirm('Delete user '+id+'?')){await api('/api/admin/users?id='+id,'DELETE');load()}}
