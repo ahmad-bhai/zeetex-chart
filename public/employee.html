@@ -28,6 +28,7 @@ label{font-size:12px;color:var(--mu)}input[type=range]{width:100%}
 <div id="pan">
  <div class="chart"><canvas id="cv"></canvas><div class="ttl" id="ttl"></div></div>
  <aside>
+  <div id="md" style="font-size:13px"></div>
   <div><div class="two"><b class="up">UP <span id="uA"></span></b><b class="dn"><span id="dA"></span> DOWN</b></div><div class="bar" style="margin-top:6px"><i id="bi" style="width:50%"></i></div><small id="hv" style="color:var(--mu)"></small></div>
   <div class="ctl" id="cb"><button class="up" data-d="up">UP ↑</button><button class="flat" data-d="flat">FLAT</button><button class="down" data-d="down">DOWN ↓</button></div>
   <div><label>Speed <b id="sv">1</b></label><input type="range" id="sp" min="0.2" max="5" step="0.2" value="1"></div>
@@ -53,17 +54,18 @@ function step(){
  if(!ch)ch=new CandleChart($('cv'));ch.setData([{time:0,open:1,high:1,low:1,close:1}],1,1,2);D=null;load(true);tm=setInterval(()=>load(false),1500);
 }
 async function load(first){
- const r=await api(`/api/admin/overview${first?`?pair=${st.pair}&tf=${st.tf}`:''}`);if(r.status===false)return;D=r;skew=r.serverTime-Date.now();ch.skew=skew;
- const p=r.pairs[st.pair],c=p.control;
+ const r=await api(`/api/admin/overview?pair=${st.pair}&tf=${st.tf}&dur=${st.dur}${first?'&candles=1':''}`);if(r.status===false)return;D=r;skew=r.serverTime-Date.now();ch.skew=skew;
+ const p=r.key,c=p.control;
+ $('md').innerHTML=p.mode==='auto'?'<b style="color:#ff8a00">AUTO mode — backend moves this chart against the heavier side</b>':'<b style="color:#0faf59">MANUAL mode — you control this chart</b>';$('cb').style.opacity=p.mode==='auto'?.35:1;
  if(first&&r.candles)ch.setData(r.candles,priceAt(c,Date.now()+skew),TFS[st.tf],decOf(c.price));
  [...$('cb').children].forEach(b=>b.classList.toggle('on',b.dataset.d===c.dir));if(document.activeElement!==$('sp')){$('sp').value=c.speed;$('sv').textContent=c.speed}
- const tr=r.open.filter(x=>x.pair===st.pair&&x.duration===st.dur),u=tr.filter(x=>x.direction==='buy').reduce((a,x)=>a+x.amount,0),d=tr.filter(x=>x.direction==='sell').reduce((a,x)=>a+x.amount,0),t=u+d;
+ const tr=r.open.filter(x=>x.pair===st.pair&&x.duration===st.dur&&(x.tf||'1m')===st.tf),u=tr.filter(x=>x.direction==='buy').reduce((a,x)=>a+x.amount,0),d=tr.filter(x=>x.direction==='sell').reduce((a,x)=>a+x.amount,0),t=u+d;
  $('uA').textContent=money(u);$('dA').textContent=money(d);$('bi').style.width=(t?u/t*100:50)+'%';$('hv').textContent=t?(u>d?'More money on UP — DOWN pays less out':d>u?'More money on DOWN — UP pays less out':'Balanced'):'No trades on this pair/time';
  $('tb').innerHTML=tr.sort((a,b)=>a.expiryTime-b.expiryTime).map(x=>`<tr><td>${x.name||x.userId}</td><td class="${x.direction==='buy'?'up':'dn'}">${x.direction==='buy'?'↑ UP':'↓ DOWN'}</td><td>${money(x.amount)}</td><td>${Math.max(0,Math.ceil((x.expiryTime-r.serverTime)/1000))}s</td></tr>`).join('')||'<tr><td colspan=4 style="color:var(--mu)">No trades</td></tr>';
  ch.marks=tr.map(x=>({price:x.entryPrice,dir:x.direction,amt:x.amount,exp:x.expiryTime}));window.cur=c}
 setInterval(()=>{if(window.cur&&ch&&ch.C.length>1){const p=priceAt(window.cur,Date.now()+skew);ch.tick(p,Date.now()+skew);$('ttl').textContent=st.pair+'  '+p.toFixed(ch.dec)+'  · '+window.cur.dir.toUpperCase()}},400);
 async function setCtl(dir){const c={...window.cur,dir};window.cur=c;[...$('cb').children].forEach(b=>b.classList.toggle('on',b.dataset.d===dir));
- const r=await api('/api/admin/control','POST',{pair:st.pair,dir,speed:+$('sp').value});if(r.status){window.cur=r.control;skew=r.serverTime-Date.now();ch.skew=skew;load(true)}}
+ const r=await api('/api/admin/control','POST',{pair:st.pair,tf:st.tf,dur:st.dur,dir,speed:+$('sp').value});if(r.status){window.cur=r.control;skew=r.serverTime-Date.now();ch.skew=skew;load(true)}else{alert(r.message||'Failed');load(false)}}
 $('cb').onclick=e=>{if(e.target.dataset.d)setCtl(e.target.dataset.d)};
 $('sp').oninput=()=>$('sv').textContent=$('sp').value;$('sp').onchange=()=>setCtl(window.cur?window.cur.dir:'flat');
 step();
