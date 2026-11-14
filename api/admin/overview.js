@@ -1,15 +1,8 @@
 import { db } from '../../lib/firebase.js';
 import { requireAdmin } from '../../lib/auth.js';
+import { priceAt, ctl } from '../../lib/priceEngine.js';
 import { generateCandles } from '../../lib/candleGenerator.js';
 
-// Self-contained price engine (no import of lib/priceEngine.js)
-const nz = s => { const x = Math.sin(s * 12.9898) * 43758.5453; return x - Math.floor(x); };
-const priceAt = (c, t = Date.now()) => {
-  if (c.dir === 'flat') return c.price;
-  const s = (t - c.since) / 1000, d = c.dir === 'up' ? 1 : -1;
-  return c.price + d * c.speed * c.vol * s * 0.05 + (nz(Math.floor(t / 500) + c.since % 97) - 0.5) * c.vol * 0.6 * c.speed * Math.min(1, s / 2);
-};
-const ctl = (name, cfg, c) => ({ pair: name, dir: 'flat', speed: 1, price: Number(cfg.basePrice) || 100, since: Date.now(), ...(c || {}), vol: Number(cfg.volatility) || 0.1 });
 const read = async k => (await db.ref(k).once('value')).val() || {};
 
 export default async function handler(req, res) {
@@ -39,7 +32,10 @@ export default async function handler(req, res) {
     }
     step = 'pairs';
     const pairs = {};
-    for (const k in P) { const c = ctl(k, P[k], C[k]); pairs[k] = { ...P[k], price: priceAt(c), control: c, up: 0, down: 0, upN: 0, downN: 0 }; }
+    for (const k in P) { 
+      const controlObj = ctl(k, P[k], C[k]);
+      pairs[k] = { ...P[k], price: priceAt(controlObj), control: controlObj, up: 0, down: 0, upN: 0, downN: 0 }; 
+    }
     open.forEach(x => { const r = pairs[x.pair]; if (!r) return; const s = x.direction === 'buy' ? 'up' : 'down'; r[s] += Number(x.amount) || 0; r[s + 'N']++; });
     closed.sort((a, b) => (b.entryTime || 0) - (a.entryTime || 0));
     step = 'candles';
