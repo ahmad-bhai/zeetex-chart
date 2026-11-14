@@ -1,16 +1,17 @@
-// Own candle engine (canvas, no library) + same price function as the server
+// Smooth professional candle engine with interpolation (no price jumping)
 (function () {
   const nz = s => { const x = Math.sin(s * 12.9898) * 43758.5453; return x - Math.floor(x); };
   window.priceAt = (c, t = Date.now()) => {
-    if (!c) return null; if (c.dir === 'flat') return c.price;
-    const s = (t - c.since) / 1000, d = c.dir === 'up' ? 1 : -1;
-    return c.price + d * c.speed * c.vol * s * 0.05 + (nz(Math.floor(t / 500) + c.since % 97) - 0.5) * c.vol * 0.6 * c.speed * Math.min(1, s / 2);
+    if (!c) return null; if (c.dir === 'flat') return Number(c.price);
+    const s = Math.max(0, (t - (c.since || t)) / 1000), d = c.dir === 'up' ? 1 : -1;
+    const sp = Number(c.speed) || 1, v = Number(c.vol) || 0.1;
+    return Number(c.price) + d * sp * v * s * 0.05 + (nz(Math.floor(t / 500) + (c.since || 0) % 97) - 0.5) * v * 0.2 * sp * Math.min(1, s / 2);
   };
   window.decOf = p => p >= 500 ? 2 : p >= 50 ? 3 : p >= 5 ? 4 : 5;
   window.CandleChart = class {
     constructor(cv) {
       this.cv = cv; this.g = cv.getContext('2d'); this.C = []; this.tf = 60; this.dec = 4; this.cw = 10; this.off = 0;
-      this.marks = []; this.price = 0; this.disp = 0; this.lo = 0; this.hi = 1; this.skew = 0; this.W = 0; this.H = 0;
+      this.marks = []; this.price = 0; this.targetPrice = 0; this.disp = 0; this.lo = 0; this.hi = 1; this.skew = 0; this.W = 0; this.H = 0;
       let d = null, pd = 0;
       cv.addEventListener('pointerdown', e => { d = { x: e.clientX, o: this.off }; cv.setPointerCapture(e.pointerId); });
       cv.addEventListener('pointermove', e => { if (d) this.off = Math.max(0, Math.min(this.C.length - 10, d.o + (e.clientX - d.x) / this.cw)); });
@@ -21,16 +22,22 @@
       new ResizeObserver(() => this.size()).observe(cv.parentElement); this.size(); this.draw();
     }
     size() { const r = this.cv.getBoundingClientRect(), p = devicePixelRatio || 1; this.W = r.width; this.H = r.height; this.cv.width = r.width * p; this.cv.height = r.height * p; this.g.setTransform(p, 0, 0, p, 0, 0); }
-    // candles: [{time,open,high,low,close}] ; shifted so the last close equals the live price
     setData(c, price, tf, dec) {
       const sh = price - c[c.length - 1].close;
       this.C = c.map(k => ({ t: k.time, o: k.open + sh, h: k.high + sh, l: k.low + sh, c: k.close + sh }));
-      this.tf = tf; this.dec = dec; this.price = this.disp = price; this.off = 0; this.lo = price * .999; this.hi = price * 1.001;
+      this.tf = tf; this.dec = dec; this.price = this.targetPrice = this.disp = price; this.off = 0; this.lo = price * .999; this.hi = price * 1.001;
     }
     tick(price, now) {
-      if (!this.C.length) return; this.price = price; const t = Math.floor(now / 1000 / this.tf) * this.tf, l = this.C[this.C.length - 1];
-      if (t > l.t) { this.C.push({ t, o: l.c, h: Math.max(l.c, price), l: Math.min(l.c, price), c: price }); if (this.C.length > 1500) this.C.shift(); }
-      else { l.c = price; l.h = Math.max(l.h, price); l.l = Math.min(l.l, price); }
+      if (!this.C.length) return;
+      this.targetPrice = price; // Smoothly glide towards target instead of jarring jump
+      this.price += (this.targetPrice - this.price) * 0.15;
+      const t = Math.floor(now / 1000 / this.tf) * this.tf, l = this.C[this.C.length - 1];
+      if (t > l.t) { 
+        this.C.push({ t, o: l.c, h: Math.max(l.c, this.price), l: Math.min(l.c, this.price), c: this.price }); 
+        if (this.C.length > 1500) this.C.shift(); 
+      } else { 
+        l.c = this.price; l.h = Math.max(l.h, this.price); l.l = Math.min(l.l, this.price); 
+      }
     }
     draw() {
       requestAnimationFrame(() => this.draw());
