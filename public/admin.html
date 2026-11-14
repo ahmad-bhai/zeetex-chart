@@ -43,7 +43,7 @@ function render(){
  const l=x=>Math.max(0,Math.ceil((x.expiryTime-D.serverTime)/1000));
  $('ot').innerHTML=o.sort((a,b)=>a.expiryTime-b.expiryTime).map(x=>`<tr><td>${x.name||x.userId} (${x.userId})</td><td>${x.pair}</td><td class="${x.direction==='buy'?'up':'dn'}">${x.direction==='buy'?'↑ UP':'↓ DOWN'}</td><td>${money(x.amount)}</td><td>${x.entryPrice.toFixed(4)}</td><td>${l(x)}s</td></tr>`).join('')||'<tr><td colspan=6>No open trades</td></tr>';
  $('ct').innerHTML=D.closed.map(x=>`<tr><td>${x.name||x.userId}</td><td>${x.pair}</td><td class="${x.direction==='buy'?'up':'dn'}">${x.direction==='buy'?'UP':'DOWN'}</td><td>${money(x.amount)}</td><td>${x.result}</td><td class="${x.pnl>0?'up':x.pnl<0?'dn':''}">${money(x.pnl)}</td></tr>`).join('')}
-async function setMode(pair,mode){await api('/api/admin/control','POST',{pair,mode});load()}
+async function setMode(pair,mode){await api('/api/admin/mode','POST',{pair,mode});load()}
 async function addBal(id){const v=prompt('Add amount to user '+id+' (negative to deduct)');if(v){await api('/api/admin/overview','POST',{id,addBalance:+v});load()}}
 async function blk(id,a){await api('/api/admin/overview','POST',{id,active:a});load()}
 async function delUser(id){if(confirm('Delete user '+id+'?')){await api('/api/admin/users?id='+id,'DELETE');load()}}
