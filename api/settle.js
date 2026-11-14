@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     if (!t) return res.status(404).json({ status: false, code: 'TRADE_NOT_FOUND' });
     if (t.status !== 'open') return res.json({ status: true, trade: t, newBalance: (await bal.get()).val() });
     
-    if (Date.now() < t.expiryTime - 300) return res.status(400).json({ status: false, code: 'TOO_EARLY' });
+    if (Date.now() < t.expiryTime - 200) return res.status(400).json({ status: false, code: 'TOO_EARLY' });
     
     const lock = await ref.child('status').transaction(s => (s === 'open' ? 'settling' : undefined));
     if (!lock.committed) return res.json({ status: true, trade: (await ref.get()).val(), newBalance: (await bal.get()).val() });
